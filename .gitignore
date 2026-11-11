@@ -47,3 +47,9 @@ htmlcov/
 # Dynamic evidence generated during testing
 evidence/evaluations/*
 !evidence/evaluations/.gitkeep
+
+# Contexto interno del agente y arnés de desarrollo (solicitado en .gitignore)
+AGENTS.md
+blueprint.md
+.agents/
+skills-lock.json
