@@ -26,12 +26,27 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          pip install -r requirements.txt
 
       - name: Verify Python syntax across all modules
         run: |
           python -m compileall shared tests orchestrator web_explorer evaluators report_creator
 
-      - name: Execute Pytest Suite
+      - name: Start Playwright MCP Infrastructure
+        run: |
+          docker compose up -d playwright-mcp
+          # Esperar a que el servidor MCP sobre SSE esté listo
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:8931/sse > /dev/null; then
+              echo "Playwright MCP listo en http://localhost:8931/sse"
+              break
+            fi
+            echo "Esperando a Playwright MCP ($i/30)..."
+            sleep 1
+          done
+
+      - name: Execute Pytest Suite (Unit & Integration)
+        env:
+          PYTHONPATH: .
         run: |
           pytest -v --tb=short

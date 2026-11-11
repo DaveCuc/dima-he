@@ -1,8 +1,11 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "usability-multiagent"
 version = "2.0.0"
 description = "Sistema multiagente distribuido para la evaluacion heuristica de interfaces web"
-readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.9.0",
@@ -10,6 +13,7 @@ dependencies = [
     "fastapi>=0.115.0",
     "uvicorn>=0.30.0",
     "httpx>=0.27.0",
+    "httpx-sse>=0.4.0",
     "google-genai>=0.1.0",
     "google-adk>=2.14.0",
 ]
