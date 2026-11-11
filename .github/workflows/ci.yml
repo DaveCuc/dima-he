@@ -34,6 +34,8 @@ jobs:
 
       - name: Start Playwright MCP Infrastructure
         run: |
+          mkdir -p evidence
+          chmod -R 777 evidence
           docker compose up -d playwright-mcp
           # Esperar a que el servidor Playwright MCP esté listo (consultando / con timeout de 2s para no bloquear en SSE)
           for i in $(seq 1 30); do
@@ -44,9 +46,12 @@ jobs:
             echo "Esperando a Playwright MCP ($i/30)..."
             sleep 1
           done
+          # Asegurar permisos de lectura/escritura en el volumen montado de evidencias
+          sudo chmod -R 777 evidence
 
       - name: Execute Pytest Suite (Unit & Integration)
         env:
           PYTHONPATH: .
+          GOOGLE_API_KEY: "dummy-key-for-ci"
         run: |
           pytest -v --tb=short
