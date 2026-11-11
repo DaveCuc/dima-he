@@ -90,14 +90,21 @@ async def health_check() -> Dict[str, Any]:
 
 
 @app.post("/evaluate", tags=["Evaluation"])
-async def evaluate_endpoint(request: EvaluationRequest) -> Dict[str, Any]:
-    """Dispara directamente el ciclo orquestado de evaluación heurística completa."""
-    logger.info(f"Orquestador: Recibida solicitud para auditar {request.target_url} (Eval ID: {request.evaluation_id})")
+async def evaluate_endpoint(
+    request: EvaluationRequest,
+    full_pipeline: bool = False,
+) -> Dict[str, Any]:
+    """Dispara directamente el ciclo orquestado de evaluación heurística.
+    
+    Si full_pipeline=True, ejecuta la cadena completa [exploración -> evaluación -> deduplicación -> reportes].
+    """
+    logger.info(f"Orquestador: Recibida solicitud para auditar {request.target_url} (Eval ID: {request.evaluation_id}, full={full_pipeline})")
     try:
         result = await execute_orchestrated_evaluation(
             request=request,
             web_explorer_url=DEFAULT_WEB_EXPLORER_URL,
             base_evidence_dir=DEFAULT_EVIDENCE_DIR,
+            run_full_pipeline=full_pipeline,
         )
         return {
             "status": "success" if result["is_valid"] else "incomplete",
@@ -157,27 +164,38 @@ async def handle_a2a_rpc(request_payload: Dict[str, Any]) -> JSONResponse:
                     },
                 )
 
+            run_full = bool(params.get("full_pipeline", False))
             eval_req = EvaluationRequest.model_validate(raw_eval_req)
             result = await execute_orchestrated_evaluation(
                 request=eval_req,
                 web_explorer_url=DEFAULT_WEB_EXPLORER_URL,
                 base_evidence_dir=DEFAULT_EVIDENCE_DIR,
+                run_full_pipeline=run_full,
             )
+
+            res_content = {
+                "status": "completed" if result["is_valid"] else "incomplete",
+                "evaluation_id": eval_req.evaluation_id,
+                "is_valid": result["is_valid"],
+                "validation_details": result["validation_details"],
+                "exploration_result": result["exploration_result"],
+                "findings_by_dimension": result["findings_by_dimension"],
+                "total_raw_findings": result["total_raw_findings"],
+            }
+            if "consolidated_findings" in result:
+                res_content["consolidated_findings"] = result["consolidated_findings"]
+                res_content["total_consolidated_findings"] = result.get("total_consolidated_findings", 0)
+                res_content["duplicates_removed"] = result.get("duplicates_removed", 0)
+            if "report_files" in result:
+                res_content["report_files"] = result["report_files"]
+                res_content["report_statistics"] = result.get("report_statistics", {})
 
             return JSONResponse(
                 status_code=status.HTTP_200_OK,
                 content={
                     "jsonrpc": "2.0",
                     "id": msg_id,
-                    "result": {
-                        "status": "completed" if result["is_valid"] else "incomplete",
-                        "evaluation_id": eval_req.evaluation_id,
-                        "is_valid": result["is_valid"],
-                        "validation_details": result["validation_details"],
-                        "exploration_result": result["exploration_result"],
-                        "findings_by_dimension": result["findings_by_dimension"],
-                        "total_raw_findings": result["total_raw_findings"],
-                    },
+                    "result": res_content,
                 },
             )
 

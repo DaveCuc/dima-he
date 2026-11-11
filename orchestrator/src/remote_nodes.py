@@ -34,6 +34,11 @@ DEFAULT_EVALUATOR_URLS = {
     "protection": os.getenv("EVALUATOR_PROTECTION_URL", "http://evaluator-protection:8005/a2a/v1/message" if IS_CONTAINER else "http://localhost:8005/a2a/v1/message"),
 }
 
+DEFAULT_REPORT_CREATOR_URL = os.getenv(
+    "REPORT_CREATOR_URL",
+    "http://report-creator:8006/a2a/v1/message" if IS_CONTAINER else "http://localhost:8006/a2a/v1/message"
+)
+
 
 class RemoteWebExplorerAgent(BaseAgent):
     """Invoca remotamente al Nodo 1 (Web Explorer) a través de A2A HTTP JSON-RPC 2.0."""
@@ -275,3 +280,109 @@ class RemoteEvaluatorAgent(BaseAgent):
                     state_delta={f"findings_{self.dimension}": []},
                 ),
             )
+
+
+class RemoteReportCreatorAgent(BaseAgent):
+    """Invoca remotamente al Nodo 6 (Report Creator) a través de A2A HTTP JSON-RPC 2.0."""
+
+    endpoint_url: str = DEFAULT_REPORT_CREATOR_URL
+    timeout: float = 60.0
+
+    def __init__(
+        self,
+        name: str = "remote_report_creator",
+        endpoint_url: str = DEFAULT_REPORT_CREATOR_URL,
+        timeout: float = 60.0,
+        **kwargs,
+    ):
+        super().__init__(
+            name=name,
+            description="Invoca al Nodo 6 para generar y persistir físicamente los reportes finales (JSON, MD, CSV) mediante A2A.",
+            **kwargs,
+        )
+        self.endpoint_url = endpoint_url
+        self.timeout = timeout
+
+    async def _run_async_impl(
+        self, ctx: InvocationContext
+    ) -> AsyncGenerator[Event, None]:
+        """Envía ConsolidatedFindings al Nodo 6 y almacena las rutas de los reportes generados."""
+        state = ctx.session.state if ctx.session else {}
+        consolidated_data = state.get("consolidated_findings")
+
+        if not consolidated_data:
+            err_msg = "RemoteReportCreatorAgent: No se encontró 'consolidated_findings' en el estado de sesión."
+            logger.error(err_msg)
+            yield Event(
+                author=self.name,
+                content=genai_types.Content(parts=[genai_types.Part.from_text(text=err_msg)]),
+                actions=EventActions(escalate=False),
+            )
+            return
+
+        eval_id = consolidated_data.get("evaluation_id", state.get("evaluation_id", "unknown_eval"))
+        rpc_payload = {
+            "jsonrpc": "2.0",
+            "id": f"a2a-rep-{eval_id}",
+            "method": "message/send",
+            "params": {
+                "message": {
+                    "parts": [
+                        {
+                            "data": consolidated_data,
+                        }
+                    ]
+                }
+            },
+        }
+
+        logger.info(f"Invocando Report Creator A2A en {self.endpoint_url} para auditoría [{eval_id}]")
+
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(self.endpoint_url, json=rpc_payload)
+                response.raise_for_status()
+                res_json = response.json()
+
+            if "error" in res_json:
+                error_info = res_json["error"]
+                err_desc = f"Error devuelto por Report Creator A2A: {error_info}"
+                logger.error(err_desc)
+                yield Event(
+                    author=self.name,
+                    content=genai_types.Content(parts=[genai_types.Part.from_text(text=err_desc)]),
+                    actions=EventActions(escalate=False, state_delta={"report_error": err_desc}),
+                )
+                return
+
+            result_data = res_json.get("result", {})
+            files_dict = result_data.get("files", {})
+            stats_dict = result_data.get("statistics", {})
+
+            success_msg = (
+                f"Reportes generados exitosamente por Nodo 6: "
+                f"JSON={files_dict.get('json')}, MD={files_dict.get('markdown')}, CSV={files_dict.get('csv')}"
+            )
+            logger.info(success_msg)
+
+            yield Event(
+                author=self.name,
+                content=genai_types.Content(parts=[genai_types.Part.from_text(text=success_msg)]),
+                actions=EventActions(
+                    escalate=False,
+                    state_delta={
+                        "report_files": files_dict,
+                        "report_statistics": stats_dict,
+                    },
+                ),
+            )
+
+        except Exception as e:
+            err_desc = f"Fallo al invocar Report Creator A2A ({self.endpoint_url}): {str(e)}"
+            logger.error(err_desc, exc_info=True)
+            yield Event(
+                author=self.name,
+                content=genai_types.Content(parts=[genai_types.Part.from_text(text=err_desc)]),
+                actions=EventActions(escalate=False, state_delta={"report_error": err_desc}),
+            )
+
