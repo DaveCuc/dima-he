@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copiar el paquete compartido y código fuente
 COPY shared /app/shared
+COPY config /app/config
 COPY web_explorer /app/web_explorer
 
 ENV PYTHONPATH=/app

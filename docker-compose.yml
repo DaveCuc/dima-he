@@ -1,4 +1,5 @@
 services:
+  # Servicio de Infraestructura: Playwright MCP + Chromium Headless
   playwright-mcp:
     image: mcr.microsoft.com/playwright/mcp:latest
     container_name: playwright-mcp
@@ -28,6 +29,212 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - usability_net
+    healthcheck:
+      test: ["CMD-SHELL", "node -e 'const http = require(\"http\"); http.get(\"http://localhost:8931/\", (res) => process.exit(res.statusCode < 500 ? 0 : 1)).on(\"error\", () => process.exit(1));'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # Nodo 1: Web Explorer (Acceso exclusivo a Playwright MCP)
+  web-explorer:
+    build:
+      context: .
+      dockerfile: web_explorer/Dockerfile
+    container_name: web-explorer
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - MCP_SERVER_URL=http://playwright-mcp:8931/
+      - PLAYWRIGHT_MCP_URL=http://playwright-mcp:8931/
+      - EVIDENCE_DIR=/app/evidence
+      - ALLOWED_TARGET_HOSTS=${ALLOWED_TARGET_HOSTS:-host.docker.internal:8000,localhost:8000,example.com}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+    volumes:
+      - ./evidence:/app/evidence
+    depends_on:
+      playwright-mcp:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - usability_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # Nodo 2: Evaluador de Diálogo y Visibilidad (H1, H2, H10)
+  evaluator-dialogue:
+    build:
+      context: .
+      dockerfile: evaluators/dialogue/Dockerfile
+    container_name: evaluator-dialogue
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      - PORT=8002
+      - EVIDENCE_DIR=/app/evidence
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+    volumes:
+      - ./evidence:/app/evidence:ro
+    networks:
+      - usability_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8002/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # Nodo 3: Evaluador de Acción y Control (H3, H7)
+  evaluator-action:
+    build:
+      context: .
+      dockerfile: evaluators/action/Dockerfile
+    container_name: evaluator-action
+    restart: unless-stopped
+    ports:
+      - "8003:8003"
+    environment:
+      - PORT=8003
+      - EVIDENCE_DIR=/app/evidence
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+    volumes:
+      - ./evidence:/app/evidence:ro
+    networks:
+      - usability_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8003/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # Nodo 4: Evaluador de Estructura y Consistencia (H4, H6, H8)
+  evaluator-structure:
+    build:
+      context: .
+      dockerfile: evaluators/structure/Dockerfile
+    container_name: evaluator-structure
+    restart: unless-stopped
+    ports:
+      - "8004:8004"
+    environment:
+      - PORT=8004
+      - EVIDENCE_DIR=/app/evidence
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+    volumes:
+      - ./evidence:/app/evidence:ro
+    networks:
+      - usability_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8004/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # Nodo 5: Evaluador de Protección y Recuperación (H5, H9)
+  evaluator-protection:
+    build:
+      context: .
+      dockerfile: evaluators/protection/Dockerfile
+    container_name: evaluator-protection
+    restart: unless-stopped
+    ports:
+      - "8005:8005"
+    environment:
+      - PORT=8005
+      - EVIDENCE_DIR=/app/evidence
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+    volumes:
+      - ./evidence:/app/evidence:ro
+    networks:
+      - usability_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8005/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # Nodo 6: Generador de Reportes (results.json, report.md, report.csv)
+  report-creator:
+    build:
+      context: .
+      dockerfile: report_creator/Dockerfile
+    container_name: report-creator
+    restart: unless-stopped
+    ports:
+      - "8006:8006"
+    environment:
+      - PORT=8006
+      - EVIDENCE_DIR=/app/evidence
+    volumes:
+      - ./evidence:/app/evidence
+    networks:
+      - usability_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8006/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # Nodo 0: Orquestador (Punto de entrada general a la red A2A)
+  orchestrator:
+    build:
+      context: .
+      dockerfile: orchestrator/Dockerfile
+    container_name: orchestrator
+    restart: unless-stopped
+    ports:
+      - "${ORCHESTRATOR_HOST_PORT:-8010}:8000"
+    environment:
+      - PORT=8000
+      - A2A_HOST=orchestrator
+      - A2A_PORT=8000
+      - WEB_EXPLORER_URL=http://web-explorer:8001/a2a/v1/message
+      - EVALUATOR_DIALOGUE_URL=http://evaluator-dialogue:8002/a2a/v1/message
+      - EVALUATOR_ACTION_URL=http://evaluator-action:8003/a2a/v1/message
+      - EVALUATOR_STRUCTURE_URL=http://evaluator-structure:8004/a2a/v1/message
+      - EVALUATOR_PROTECTION_URL=http://evaluator-protection:8005/a2a/v1/message
+      - REPORT_CREATOR_URL=http://report-creator:8006/a2a/v1/message
+      - EVIDENCE_DIR=/app/evidence
+    volumes:
+      - ./evidence:/app/evidence
+    depends_on:
+      web-explorer:
+        condition: service_healthy
+      evaluator-dialogue:
+        condition: service_healthy
+      evaluator-action:
+        condition: service_healthy
+      evaluator-structure:
+        condition: service_healthy
+      evaluator-protection:
+        condition: service_healthy
+      report-creator:
+        condition: service_healthy
+    networks:
+      - usability_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
 networks:
   usability_net:
