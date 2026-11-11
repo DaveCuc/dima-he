@@ -1,0 +1,32 @@
+# config/evaluation.yaml
+# Configuracion predeterminada para auditorias heurísticas
+
+target:
+  default_url: "http://host.docker.internal:8000"
+  allowed_hosts:
+    - "host.docker.internal:8000"
+    - "localhost:8000"
+    - "127.0.0.1:8000"
+
+viewport:
+  width: 1366
+  height: 768
+
+timeouts:
+  page_load_seconds: 30
+  interaction_seconds: 60
+  mcp_request_seconds: 30
+
+exploration:
+  max_iterations: 3
+  max_depth: 1
+  follow_child_links: true
+  safe_mode_only: true
+  allow_destructive_actions: false
+
+reports:
+  formats:
+    - "json"
+    - "md"
+    - "csv"
+  relative_path: "reports"

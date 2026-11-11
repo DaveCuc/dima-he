@@ -1,0 +1,81 @@
+# config/agents.yaml
+# Especificacion de los 7 Nodos A2A y el servicio de infraestructura Playwright MCP
+
+network:
+  bridge_name: "usability_net"
+  evidence_mount_path: "/app/evidence"
+
+services:
+  orchestrator:
+    node_id: "node_0_orchestrator"
+    name: "Orquestador de Evaluación Heurística"
+    internal_port: 8000
+    host_port: 8010
+    role: "coordinator"
+    agent_card_url: "http://orchestrator:8000/.well-known/agent-card.json"
+    evidence_access: "rw"
+
+  web_explorer:
+    node_id: "node_1_web_explorer"
+    name: "Agente Explorador Web Multimodal"
+    internal_port: 8001
+    host_port: 8001
+    role: "explorer"
+    agent_card_url: "http://web-explorer:8001/.well-known/agent-card.json"
+    evidence_access: "rw"
+
+  evaluator_dialogue:
+    node_id: "node_2_evaluator_dialogue"
+    name: "Evaluador de Diálogo y Visibilidad"
+    internal_port: 8002
+    role: "evaluator"
+    heuristics: ["H1", "H2", "H10"]
+    agent_card_url: "http://evaluator-dialogue:8002/.well-known/agent-card.json"
+    evidence_access: "ro"
+
+  evaluator_action:
+    node_id: "node_3_evaluator_action"
+    name: "Evaluador de Acción y Control"
+    internal_port: 8003
+    role: "evaluator"
+    heuristics: ["H3", "H7"]
+    agent_card_url: "http://evaluator-action:8003/.well-known/agent-card.json"
+    evidence_access: "ro"
+
+  evaluator_structure:
+    node_id: "node_4_evaluator_structure"
+    name: "Evaluador de Estructura y Consistencia"
+    internal_port: 8004
+    role: "evaluator"
+    heuristics: ["H4", "H6", "H8"]
+    agent_card_url: "http://evaluator-structure:8004/.well-known/agent-card.json"
+    evidence_access: "ro"
+
+  evaluator_protection:
+    node_id: "node_5_evaluator_protection"
+    name: "Evaluador de Protección y Recuperación"
+    internal_port: 8005
+    role: "evaluator"
+    heuristics: ["H5", "H9"]
+    agent_card_url: "http://evaluator-protection:8005/.well-known/agent-card.json"
+    evidence_access: "ro"
+
+  report_creator:
+    node_id: "node_6_report_creator"
+    name: "Generador de Reportes y Síntesis"
+    internal_port: 8006
+    role: "reporter"
+    output_formats: ["json", "md", "csv"]
+    agent_card_url: "http://report-creator:8006/.well-known/agent-card.json"
+    evidence_access: "rw"
+
+infrastructure:
+  playwright_mcp:
+    name: "Servidor Playwright MCP"
+    image: "mcr.microsoft.com/playwright/mcp:latest"
+    internal_port: 8931
+    host_port: null
+    shm_size: "1gb"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    evidence_access: "rw"

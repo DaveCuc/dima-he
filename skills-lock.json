@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "skills": {
+    "ADK A2A Developer": {
+      "source": "VeerMuchandi/rad-skills",
+      "sourceType": "github",
+      "skillPath": "adk_a2a_developer/SKILL.md",
+      "computedHash": "855cd63b07ba5949d7e0475579db7cb46233a8188c1e98e69c61ac67a42dda4a"
+    },
+    "adk-agent-builder": {
+      "source": "google/adk-python",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/adk-agent-builder/SKILL.md",
+      "computedHash": "09547483c9d659cc21b855ff51b84f388b1035960952f033a9133183c16a2a70"
+    },
+    "gemini-api-dev": {
+      "source": "google-gemini/gemini-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gemini-api-dev/SKILL.md",
+      "computedHash": "2c338d42a048caa70b103b4bbfccbf680a8d2a632289e7bf8decb66f6c001c91"
+    },
+    "mcp-builder": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/mcp-builder/SKILL.md",
+      "computedHash": "5a699fa929d99d7e6b1ebe10f13bf960d9ad452b70bd0733efd5d1de9524e285"
+    },
+    "playwright-explore-website": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/playwright-explore-website/SKILL.md",
+      "computedHash": "f1f960c9ed5ad532dd5cfc4182740188b5b54291e1c6077cc1f6ef8703c0c0ef"
+    }
+  }
+}

@@ -1,0 +1,154 @@
+# config/heuristics.yaml
+# Definicion formal de las 10 Heuristicas de Jakob Nielsen y asignacion a evaluadores
+
+dimensions:
+  dialogue:
+    node_id: "evaluator_dialogue"
+    name: "Evaluador de Diálogo, Visibilidad y Ayuda"
+    port: 8002
+    heuristics: ["H1", "H2", "H10"]
+    focus: "Comunicación interfaz-usuario, microcopy, indicadores de estado/carga, lenguaje comprensible y documentación de ayuda."
+
+  action:
+    node_id: "evaluator_action"
+    name: "Evaluador de Acción y Control del Usuario"
+    port: 8003
+    heuristics: ["H3", "H7"]
+    focus: "Flujos de interacción, botones de cancelar/regresar, cierre de modales, controles interactivos, atajos y eficiencia operativa."
+
+  structure:
+    node_id: "evaluator_structure"
+    name: "Evaluador de Estructura, Consistencia y Reconocimiento"
+    port: 8004
+    heuristics: ["H4", "H6", "H8"]
+    focus: "Jerarquía visual, saturación de información, visibilidad de menús/opciones, contraste estructural y consistencia de componentes."
+
+  protection:
+    node_id: "evaluator_protection"
+    name: "Evaluador de Protección y Recuperación de Errores"
+    port: 8005
+    heuristics: ["H5", "H9"]
+    focus: "Validaciones de formularios, restricciones de entrada, confirmaciones ante acciones críticas, claridad de mensajes de error y recuperación sin pérdida de datos."
+
+heuristics:
+  H1:
+    id: "H1"
+    name: "Visibilidad del estado del sistema"
+    dimension: "dialogue"
+    description: "El sistema siempre debe mantener informados a los usuarios de lo que está ocurriendo, mediante retroalimentación apropiada dentro de un tiempo razonable."
+    evaluation_checklist:
+      - "Indicadores visuales de carga o progreso durante operaciones asíncronas."
+      - "Marcado claro del estado activo en menús de navegación y pestañas."
+      - "Notificaciones de éxito o confirmación al completar acciones."
+
+  H2:
+    id: "H2"
+    name: "Relación entre el sistema y el mundo real"
+    dimension: "dialogue"
+    description: "El sistema debe hablar el lenguaje de los usuarios, con palabras, frases y conceptos familiares para el usuario, en lugar de términos orientados al sistema."
+    evaluation_checklist:
+      - "Uso de vocabulario comprensible sin tecnicismos internos o de bases de datos."
+      - "Metáforas e iconografía alineadas con las convenciones del mundo real."
+      - "Orden natural y lógico de la información presentada."
+
+  H3:
+    id: "H3"
+    name: "Control y libertad del usuario"
+    dimension: "action"
+    description: "Los usuarios a menudo eligen funciones del sistema por error y necesitan una 'salida de emergencia' claramente marcada para abandonar el estado no deseado."
+    evaluation_checklist:
+      - "Presencia de botones para cancelar, regresar o deshacer acciones."
+      - "Cierre sencillo de modales, diálogos y menús flotantes (botón cerrar o clic exterior)."
+      - "Navegación fluida de regreso sin atrapamiento en páginas o formularios."
+
+  H4:
+    id: "H4"
+    name: "Consistencia y estándares"
+    dimension: "structure"
+    description: "Los usuarios no deberían tener que preguntarse si diferentes palabras, situaciones o acciones significan la misma cosa. Sigue las convenciones de la plataforma."
+    evaluation_checklist:
+      - "Uso consistente de colores, tipografías y estilos de botones en todas las vistas."
+      - "Ubicación predecible de elementos clave (logotipo, búsqueda, menús)."
+      - "Misma terminología para las mismas acciones en toda la aplicación."
+
+  H5:
+    id: "H5"
+    name: "Prevención de errores"
+    dimension: "protection"
+    description: "Aún mejor que los buenos mensajes de error es un diseño cuidadoso que previene que ocurra un problema en primer lugar."
+    evaluation_checklist:
+      - "Desactivación o validación preventiva de botones de envío ante datos inválidos."
+      - "Petición de confirmación antes de ejecutar acciones irreversibles o destructivas."
+      - "Restricciones de formato en campos de entrada (máscaras, selectores de fecha)."
+
+  H6:
+    id: "H6"
+    name: "Reconocimiento antes que recuerdo"
+    dimension: "structure"
+    description: "Minimiza la carga de memoria del usuario haciendo que los elementos, las acciones y las opciones sean visibles. La información debe ser fácil de recuperar."
+    evaluation_checklist:
+      - "Menús y opciones de navegación visibles sin requerir memorización de rutas."
+      - "Instrucciones de uso visibles o fácilmente accesibles en el contexto de la tarea."
+      - "Breadcrumbs (migas de pan) que indiquen la ubicación actual en la jerarquía."
+
+  H7:
+    id: "H7"
+    name: "Flexibilidad y eficiencia de uso"
+    dimension: "action"
+    description: "Los aceleradores (invisibles para el usuario novato) pueden a menudo acelerar la interacción para el usuario experto, adaptándose a ambos."
+    evaluation_checklist:
+      - "Opciones de búsqueda rápida, filtros y ordenamiento en listados y catálogos."
+      - "Atajos o accesos directos a funciones frecuentes."
+      - "Capacidad de autocompletado en campos de entrada habituales."
+
+  H8:
+    id: "H8"
+    name: "Diseño estético y minimalista"
+    dimension: "structure"
+    description: "Las interfaces no deben contener información irrelevante o rara vez necesaria. Cada unidad extra de información compite con la información relevante."
+    evaluation_checklist:
+      - "Espaciado y jerarquía visual claros sin sobrecarga de elementos o texto denso."
+      - "Contraste suficiente entre texto y fondo según estándares de legibilidad."
+      - "Enfoque en los elementos principales de cada vista sin distracciones visuales innecesarias."
+
+  H9:
+    id: "H9"
+    name: "Ayudar a los usuarios a reconocer, diagnosticar y recuperarse de errores"
+    dimension: "protection"
+    description: "Los mensajes de error se deben expresar en lenguaje claro (sin códigos), deben indicar con precisión el problema y sugerir constructivamente una solución."
+    evaluation_checklist:
+      - "Mensajes de error redactados en lenguaje sencillo y amigable."
+      - "Identificación visual precisa del campo o componente que causó el error."
+      - "Sugerencias concretas y constructivas sobre cómo corregir el problema."
+
+  H10:
+    id: "H10"
+    name: "Ayuda y documentación"
+    dimension: "dialogue"
+    description: "Aunque es mejor que el sistema se pueda usar sin documentación, puede ser necesario proporcionar ayuda. Debe ser fácil de buscar y orientada a tareas."
+    evaluation_checklist:
+      - "Presencia de tooltips explicativos o textos de ayuda contextual en campos clave."
+      - "Sección de Preguntas Frecuentes (FAQ), guía de usuario o contacto de soporte."
+      - "Documentación concisa y enfocada en resolver las tareas concretas del usuario."
+
+severities:
+  0:
+    level: 0
+    name: "No es problema"
+    description: "No afecta negativamente la usabilidad ni la experiencia de usuario."
+  1:
+    level: 1
+    name: "Problema cosmético"
+    description: "Inconveniente menor de presentación visual. Se atiende solo si hay tiempo disponible."
+  2:
+    level: 2
+    name: "Problema menor"
+    description: "Molestia leve en el flujo de interacción. Baja prioridad de corrección."
+  3:
+    level: 3
+    name: "Problema mayor"
+    description: "Dificulta considerablemente la compleción de tareas o frustra al usuario. Alta prioridad."
+  4:
+    level: 4
+    name: "Catástrofe de usabilidad"
+    description: "Bloquea por completo el objetivo del usuario. Debe corregirse de inmediato antes de producción."
