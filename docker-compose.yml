@@ -1,0 +1,34 @@
+services:
+  playwright-mcp:
+    image: mcr.microsoft.com/playwright/mcp:latest
+    container_name: playwright-mcp
+    restart: unless-stopped
+    command:
+      - "--port"
+      - "8931"
+      - "--host"
+      - "0.0.0.0"
+      - "--allowed-hosts"
+      - "*"
+      - "--browser"
+      - "chromium"
+      - "--no-sandbox"
+      - "--allow-unrestricted-file-access"
+      - "--output-dir"
+      - "/app/evidence"
+      - "--viewport-size"
+      - "1366x768"
+    shm_size: "1gb"
+    ports:
+      - "8931:8931"
+    volumes:
+      - ./evidence:/app/evidence
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - usability_net
+
+networks:
+  usability_net:
+    name: usability_net
+    driver: bridge

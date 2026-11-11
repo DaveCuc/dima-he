@@ -45,6 +45,8 @@ htmlcov/
 .docker/
 
 # Dynamic evidence generated during testing
+evidence/*
+!evidence/evaluations/
 evidence/evaluations/*
 !evidence/evaluations/.gitkeep
 
