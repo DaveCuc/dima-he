@@ -13,7 +13,11 @@ from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
 from shared.schemas.evaluation import EvaluationRequest
-from orchestrator.src.agent import execute_orchestrated_exploration, DEFAULT_EVIDENCE_DIR
+from orchestrator.src.agent import (
+    execute_orchestrated_evaluation,
+    execute_orchestrated_exploration,
+    DEFAULT_EVIDENCE_DIR,
+)
 from orchestrator.src.remote_nodes import DEFAULT_WEB_EXPLORER_URL
 
 logging.basicConfig(level=logging.INFO)
@@ -87,10 +91,10 @@ async def health_check() -> Dict[str, Any]:
 
 @app.post("/evaluate", tags=["Evaluation"])
 async def evaluate_endpoint(request: EvaluationRequest) -> Dict[str, Any]:
-    """Dispara directamente el ciclo orquestado de evaluación heurística."""
+    """Dispara directamente el ciclo orquestado de evaluación heurística completa."""
     logger.info(f"Orquestador: Recibida solicitud para auditar {request.target_url} (Eval ID: {request.evaluation_id})")
     try:
-        result = await execute_orchestrated_exploration(
+        result = await execute_orchestrated_evaluation(
             request=request,
             web_explorer_url=DEFAULT_WEB_EXPLORER_URL,
             base_evidence_dir=DEFAULT_EVIDENCE_DIR,
@@ -154,7 +158,7 @@ async def handle_a2a_rpc(request_payload: Dict[str, Any]) -> JSONResponse:
                 )
 
             eval_req = EvaluationRequest.model_validate(raw_eval_req)
-            result = await execute_orchestrated_exploration(
+            result = await execute_orchestrated_evaluation(
                 request=eval_req,
                 web_explorer_url=DEFAULT_WEB_EXPLORER_URL,
                 base_evidence_dir=DEFAULT_EVIDENCE_DIR,
@@ -171,6 +175,8 @@ async def handle_a2a_rpc(request_payload: Dict[str, Any]) -> JSONResponse:
                         "is_valid": result["is_valid"],
                         "validation_details": result["validation_details"],
                         "exploration_result": result["exploration_result"],
+                        "findings_by_dimension": result["findings_by_dimension"],
+                        "total_raw_findings": result["total_raw_findings"],
                     },
                 },
             )

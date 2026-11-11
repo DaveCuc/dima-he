@@ -16,6 +16,7 @@ from google.genai import types as genai_types
 
 from shared.schemas.evaluation import EvaluationRequest
 from shared.schemas.exploration import ExplorationResult
+from shared.schemas.finding import EvaluatorFindingList
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,15 @@ DEFAULT_WEB_EXPLORER_URL = os.getenv(
     "WEB_EXPLORER_URL",
     "http://web-explorer:8001/a2a/v1/message" if os.path.exists("/app/evidence") else "http://localhost:8001/a2a/v1/message"
 )
+
+IS_CONTAINER = os.path.exists("/app/evidence")
+
+DEFAULT_EVALUATOR_URLS = {
+    "dialogue": os.getenv("EVALUATOR_DIALOGUE_URL", "http://evaluator-dialogue:8002/a2a/v1/message" if IS_CONTAINER else "http://localhost:8002/a2a/v1/message"),
+    "action": os.getenv("EVALUATOR_ACTION_URL", "http://evaluator-action:8003/a2a/v1/message" if IS_CONTAINER else "http://localhost:8003/a2a/v1/message"),
+    "structure": os.getenv("EVALUATOR_STRUCTURE_URL", "http://evaluator-structure:8004/a2a/v1/message" if IS_CONTAINER else "http://localhost:8004/a2a/v1/message"),
+    "protection": os.getenv("EVALUATOR_PROTECTION_URL", "http://evaluator-protection:8005/a2a/v1/message" if IS_CONTAINER else "http://localhost:8005/a2a/v1/message"),
+}
 
 
 class RemoteWebExplorerAgent(BaseAgent):
@@ -156,4 +166,112 @@ class RemoteWebExplorerAgent(BaseAgent):
                 author=self.name,
                 content=genai_types.Content(parts=[genai_types.Part.from_text(text=err_desc)]),
                 actions=EventActions(escalate=False),
+            )
+
+
+class RemoteEvaluatorAgent(BaseAgent):
+    """Agente cliente A2A que invoca a un microservicio evaluador heurístico."""
+
+    dimension: str = ""
+    endpoint_url: str = ""
+    timeout: float = 60.0
+
+    def __init__(
+        self,
+        name: str,
+        dimension: str,
+        endpoint_url: str,
+        timeout: float = 60.0,
+        **kwargs,
+    ):
+        super().__init__(
+            name=name,
+            dimension=dimension,
+            endpoint_url=endpoint_url,
+            timeout=timeout,
+            description=f"Invoca al Evaluador A2A de la dimensión '{dimension}'.",
+            **kwargs,
+        )
+
+    async def _run_async_impl(
+        self, ctx: InvocationContext
+    ) -> AsyncGenerator[Event, None]:
+        """Envía el ExplorationResult al evaluador correspondiente y captura sus hallazgos."""
+        state = ctx.session.state if ctx.session else {}
+        exploration_data = state.get("exploration_result")
+
+        if not exploration_data:
+            err_msg = f"RemoteEvaluatorAgent ({self.dimension}): No hay 'exploration_result' disponible para evaluar."
+            logger.error(err_msg)
+            yield Event(
+                author=self.name,
+                content=genai_types.Content(parts=[genai_types.Part.from_text(text=err_msg)]),
+                actions=EventActions(escalate=False),
+            )
+            return
+
+        eval_id = exploration_data.get("evaluation_id", "unknown")
+        rpc_payload = {
+            "jsonrpc": "2.0",
+            "id": f"a2a-eval-{self.dimension}-{eval_id}",
+            "method": "message/send",
+            "params": {
+                "message": {
+                    "parts": [
+                        {
+                            "data": exploration_data,
+                        }
+                    ]
+                }
+            },
+        }
+
+        logger.info(f"Invocando Evaluador A2A ({self.dimension}) en {self.endpoint_url}")
+
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(self.endpoint_url, json=rpc_payload)
+                response.raise_for_status()
+                res_json = response.json()
+
+            if "error" in res_json:
+                error_info = res_json["error"]
+                err_desc = f"Error devuelto por Evaluador ({self.dimension}): {error_info}"
+                logger.error(err_desc)
+                yield Event(
+                    author=self.name,
+                    content=genai_types.Content(parts=[genai_types.Part.from_text(text=err_desc)]),
+                    actions=EventActions(escalate=False),
+                )
+                return
+
+            result_data = res_json.get("result", {})
+            raw_findings = result_data.get("findings", [])
+
+            findings_list = EvaluatorFindingList(findings=raw_findings)
+            logger.info(f"Evaluador ({self.dimension}) identificó {len(findings_list.findings)} hallazgos.")
+
+            yield Event(
+                author=self.name,
+                content=genai_types.Content(
+                    parts=[genai_types.Part.from_text(text=f"Evaluación de {self.dimension} completada: {len(findings_list.findings)} hallazgos.")]
+                ),
+                actions=EventActions(
+                    escalate=False,
+                    state_delta={
+                        f"findings_{self.dimension}": findings_list.model_dump(mode="json")["findings"]
+                    },
+                ),
+            )
+
+        except Exception as e:
+            err_desc = f"Fallo al invocar Evaluador A2A ({self.dimension}) en {self.endpoint_url}: {str(e)}"
+            logger.error(err_desc, exc_info=True)
+            yield Event(
+                author=self.name,
+                content=genai_types.Content(parts=[genai_types.Part.from_text(text=err_desc)]),
+                actions=EventActions(
+                    escalate=False,
+                    state_delta={f"findings_{self.dimension}": []},
+                ),
             )
