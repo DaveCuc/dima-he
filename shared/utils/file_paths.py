@@ -51,6 +51,16 @@ def ensure_evaluation_directories(base_path: Union[str, Path], evaluation_id: st
     }
     for directory in dirs.values():
         directory.mkdir(parents=True, exist_ok=True)
+        # Asegurar permisos rwxrwxrwx (0o777) en entornos POSIX/Linux para interoperabilidad con Docker
+        try:
+            curr = directory
+            base_resolved = Path(base_path).resolve()
+            while curr != base_resolved and curr != curr.parent:
+                curr.chmod(0o777)
+                curr = curr.parent
+            base_resolved.chmod(0o777)
+        except OSError:
+            pass
     return dirs
 
 

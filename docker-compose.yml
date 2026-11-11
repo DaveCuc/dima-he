@@ -3,6 +3,7 @@ services:
     image: mcr.microsoft.com/playwright/mcp:latest
     container_name: playwright-mcp
     restart: unless-stopped
+    user: "root"
     command:
       - "--port"
       - "8931"
