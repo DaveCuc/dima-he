@@ -48,6 +48,9 @@ htmlcov/
 evidence/*
 !evidence/evaluations/
 evidence/evaluations/*
+
+# Scratch and temporary testing files
+scratch/
 !evidence/evaluations/.gitkeep
 
 # Contexto interno del agente y arnés de desarrollo (solicitado en .gitignore)
