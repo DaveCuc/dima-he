@@ -35,10 +35,10 @@ jobs:
       - name: Start Playwright MCP Infrastructure
         run: |
           docker compose up -d playwright-mcp
-          # Esperar a que el servidor MCP sobre SSE esté listo
+          # Esperar a que el servidor Playwright MCP esté listo (consultando / con timeout de 2s para no bloquear en SSE)
           for i in $(seq 1 30); do
-            if curl -s http://localhost:8931/sse > /dev/null; then
-              echo "Playwright MCP listo en http://localhost:8931/sse"
+            if curl -s -m 2 -o /dev/null http://localhost:8931/; then
+              echo "Playwright MCP listo y respondiendo en http://localhost:8931"
               break
             fi
             echo "Esperando a Playwright MCP ($i/30)..."
